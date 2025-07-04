@@ -92,3 +92,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.tiptap-editor {
+  outline: none !important;
+  border: none !important;
+  user-select: text !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+.tiptap-editor:focus {
+  outline: none !important;
+  border: none !important;
+  user-select: text !important;
+  box-shadow: none !important;
+  background: transparent;
+}

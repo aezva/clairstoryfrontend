@@ -671,7 +671,7 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
                 <div style={{ margin: '2.5cm', minHeight: '24.7cm' }}>
                   <EditorContent
                     editor={tiptap}
-                    className="outline-none"
+                    className="tiptap-editor"
                     style={{
                       fontFamily: fontFamily,
                       fontSize: `${fontSize}pt`,
