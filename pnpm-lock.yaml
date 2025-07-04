@@ -104,6 +104,12 @@ dependencies:
   '@tiptap/extension-color':
     specifier: ^2.24.2
     version: 2.24.2(@tiptap/core@2.24.2)(@tiptap/extension-text-style@2.24.2)
+  '@tiptap/extension-font-family':
+    specifier: ^2.24.2
+    version: 2.24.2(@tiptap/core@2.24.2)(@tiptap/extension-text-style@2.24.2)
+  '@tiptap/extension-font-size':
+    specifier: 3.0.0-next.3
+    version: 3.0.0-next.3(@tiptap/core@2.24.2)(@tiptap/extension-text-style@2.24.2)
   '@tiptap/extension-highlight':
     specifier: ^2.24.2
     version: 2.24.2(@tiptap/core@2.24.2)
@@ -114,6 +120,9 @@ dependencies:
     specifier: ^2.24.2
     version: 2.24.2(@tiptap/core@2.24.2)(@tiptap/pm@2.24.2)
   '@tiptap/extension-text-align':
+    specifier: ^2.24.2
+    version: 2.24.2(@tiptap/core@2.24.2)
+  '@tiptap/extension-text-style':
     specifier: ^2.24.2
     version: 2.24.2(@tiptap/core@2.24.2)
   '@tiptap/extension-underline':
@@ -2265,6 +2274,26 @@ packages:
       '@tiptap/core': 2.24.2(@tiptap/pm@2.24.2)
       '@tiptap/pm': 2.24.2
       tippy.js: 6.3.7
+    dev: false
+
+  /@tiptap/extension-font-family@2.24.2(@tiptap/core@2.24.2)(@tiptap/extension-text-style@2.24.2):
+    resolution: {integrity: sha512-La7gCAxndNc3/vnDJsxXlCAWRvfRJXo38wU5UABbG6AQfvpvJk+eGYgiu6o3zicFwnjka0JuxGys1H4m+QfgWg==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+      '@tiptap/extension-text-style': ^2.7.0
+    dependencies:
+      '@tiptap/core': 2.24.2(@tiptap/pm@2.24.2)
+      '@tiptap/extension-text-style': 2.24.2(@tiptap/core@2.24.2)
+    dev: false
+
+  /@tiptap/extension-font-size@3.0.0-next.3(@tiptap/core@2.24.2)(@tiptap/extension-text-style@2.24.2):
+    resolution: {integrity: sha512-JmmrCboLvDH4HG1nOAMkiwmeFluliXaeEh5+RDxOofuzxsHjSYVJpNP846eLtMnjkUAxjvh7tBz7GTjATm3OuQ==}
+    peerDependencies:
+      '@tiptap/core': ^3.0.0-next.3
+      '@tiptap/extension-text-style': ^3.0.0-next.3
+    dependencies:
+      '@tiptap/core': 2.24.2(@tiptap/pm@2.24.2)
+      '@tiptap/extension-text-style': 2.24.2(@tiptap/core@2.24.2)
     dev: false
 
   /@tiptap/extension-gapcursor@2.24.2(@tiptap/core@2.24.2)(@tiptap/pm@2.24.2):
