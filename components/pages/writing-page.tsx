@@ -369,7 +369,7 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
   const renderManuscript = () => (
     <div className="flex flex-col gap-8">
       {chapters.map((chapter, idx) => (
-        <div key={chapter.id} className="bg-white dark:bg-gray-900 shadow-lg border rounded-lg p-8">
+        <div key={chapter.id} className="bg-white dark:bg-gray-900 shadow-lg rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-4">{chapter.title}</h2>
           <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: chapter.content || "" }} />
         </div>
