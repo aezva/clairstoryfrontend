@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card"
 import {
   Bold,
   Italic,
-  Underline,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -30,12 +29,21 @@ import {
   Eye,
   Settings,
   Edit,
+  Underline as UnderlineIcon,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { getChapters, createChapter, updateChapter, deleteChapter, updateProject } from "@/lib/supabaseApi"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import Color from '@tiptap/extension-color';
+import Underline from '@tiptap/extension-underline';
+import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
 
 const initialContent = `<div style="text-align: center; margin-bottom: 32px;">
   <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Capítulo 1: El Despertar</h1>
@@ -243,20 +251,28 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     }
   }
 
-  const handleBold = () => execCommand("bold")
-  const handleItalic = () => execCommand("italic")
-  const handleUnderline = () => execCommand("underline")
-  const handleAlignLeft = () => execCommand("justifyLeft")
-  const handleAlignCenter = () => execCommand("justifyCenter")
-  const handleAlignRight = () => execCommand("justifyRight")
-  const handleAlignJustify = () => execCommand("justifyFull")
-  const handleBulletList = () => execCommand("insertUnorderedList")
-  const handleNumberedList = () => execCommand("insertOrderedList")
-  const handleUndo = () => execCommand("undo")
-  const handleRedo = () => execCommand("redo")
-  const handleCut = () => execCommand("cut")
-  const handleCopy = () => execCommand("copy")
-  const handlePaste = () => execCommand("paste")
+  // Reemplazar handlers de formato por comandos TipTap
+  const handleBold = () => tiptap?.chain().focus().toggleBold().run();
+  const handleItalic = () => tiptap?.chain().focus().toggleItalic().run();
+  const handleUnderline = () => tiptap?.chain().focus().toggleUnderline().run();
+  const handleAlignLeft = () => tiptap?.chain().focus().setTextAlign('left').run();
+  const handleAlignCenter = () => tiptap?.chain().focus().setTextAlign('center').run();
+  const handleAlignRight = () => tiptap?.chain().focus().setTextAlign('right').run();
+  const handleAlignJustify = () => tiptap?.chain().focus().setTextAlign('justify').run();
+  const handleBulletList = () => tiptap?.chain().focus().toggleBulletList().run();
+  const handleNumberedList = () => tiptap?.chain().focus().toggleOrderedList().run();
+  const handleUndo = () => tiptap?.chain().focus().undo().run();
+  const handleRedo = () => tiptap?.chain().focus().redo().run();
+  const handleHighlight = () => tiptap?.chain().focus().toggleHighlight().run();
+  const handleTextColor = () => tiptap?.chain().focus().setColor('#000000').run();
+  const handleInsertLink = () => {
+    const url = prompt('Ingresa la URL:');
+    if (url) tiptap?.chain().focus().setLink({ href: url }).run();
+  };
+  const handleInsertImage = () => {
+    const url = prompt('Ingresa la URL de la imagen:');
+    if (url) tiptap?.chain().focus().setImage({ src: url }).run();
+  };
 
   const handleFontSize = (size: number) => {
     setFontSize(size)
@@ -269,28 +285,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     setFontFamily(family)
     if (editorRef.current) {
       editorRef.current.style.fontFamily = family
-    }
-  }
-
-  const handleHighlight = () => {
-    execCommand("hiliteColor", "#ffff00")
-  }
-
-  const handleTextColor = () => {
-    execCommand("foreColor", "#000000")
-  }
-
-  const handleInsertLink = () => {
-    const url = prompt("Ingresa la URL:")
-    if (url) {
-      execCommand("createLink", url)
-    }
-  }
-
-  const handleInsertImage = () => {
-    const url = prompt("Ingresa la URL de la imagen:")
-    if (url) {
-      execCommand("insertImage", url)
     }
   }
 
@@ -404,6 +398,45 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     </div>
   );
 
+  // Editor TipTap
+  const tiptap = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      LinkExtension,
+      ImageExtension,
+      Highlight,
+      Color,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    ],
+    content: content || '',
+    editable: !!selectedChapter,
+    onUpdate: ({ editor }) => {
+      setContent(editor.getHTML());
+      setIsEditing(true);
+    },
+  });
+
+  // Sincronizar TipTap cuando cambia el capítulo
+  useEffect(() => {
+    if (tiptap && selectedChapter) {
+      tiptap.commands.setContent(selectedChapter.content || '');
+      tiptap.setEditable(true);
+    } else if (tiptap) {
+      tiptap.commands.setContent('');
+      tiptap.setEditable(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChapter]);
+
+  useEffect(() => {
+    if (tiptap && !viewManuscript && selectedChapter) {
+      tiptap.commands.setContent(selectedChapter.content || '');
+      tiptap.setEditable(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewManuscript]);
+
   return (
     <div className="flex h-full">
       {/* Área principal del editor */}
@@ -469,19 +502,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleRedo} title="Rehacer">
                   <Redo className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Portapapeles */}
-              <div className="flex items-center space-x-1 pr-2 border-r">
-                <Button variant="ghost" size="sm" onClick={handleCut} title="Cortar">
-                  <Cut className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleCopy} title="Copiar">
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handlePaste} title="Pegar">
-                  <Paste className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -554,7 +574,7 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
                   <Italic className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleUnderline} title="Subrayado">
-                  <Underline className="h-4 w-4" />
+                  <UnderlineIcon className="h-4 w-4" />
                 </Button>
                 <div
                   className="w-6 h-6 bg-yellow-300 rounded border cursor-pointer"
@@ -646,31 +666,23 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
               {viewManuscript ? (
                 <div className="p-16 prose dark:prose-invert max-w-none" style={{ minHeight: '24.7cm' }}>{renderManuscript()}</div>
               ) : (
-                <div
-                  ref={editorRef}
-                  contentEditable={!!selectedChapter}
-                  suppressContentEditableWarning
-                  dir="ltr"
-                  className="outline-none"
-                  style={{
-                    direction: 'ltr',
-                    fontFamily: fontFamily,
-                    fontSize: `${fontSize}pt`,
-                    lineHeight: "1.6",
-                    textAlign: "left",
-                    background: !selectedChapter ? '#f3f4f6' : 'inherit',
-                    color: !selectedChapter ? '#a0aec0' : 'inherit',
-                    cursor: !selectedChapter ? 'not-allowed' : undefined,
-                    minHeight: '24.7cm',
-                    margin: '2.5cm',
-                    boxSizing: 'border-box',
-                    borderRadius: '0.5rem',
-                    transition: 'background 0.2s, color 0.2s',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: content }}
-                  onInput={handleContentChange}
-                  onBlur={handleContentChange}
-                />
+                <div style={{ margin: '2.5cm', minHeight: '24.7cm' }}>
+                  <EditorContent
+                    editor={tiptap}
+                    className="outline-none"
+                    style={{
+                      fontFamily: fontFamily,
+                      fontSize: `${fontSize}pt`,
+                      lineHeight: '1.6',
+                      textAlign: 'left',
+                      background: !selectedChapter ? '#f3f4f6' : 'inherit',
+                      color: !selectedChapter ? '#a0aec0' : 'inherit',
+                      cursor: !selectedChapter ? 'not-allowed' : undefined,
+                      borderRadius: '0.5rem',
+                      transition: 'background 0.2s, color 0.2s',
+                    }}
+                  />
+                </div>
               )}
               {!selectedChapter && !viewManuscript && (
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-lg font-medium pointer-events-none">
