@@ -47,6 +47,7 @@ import ImageExtension from '@tiptap/extension-image';
 import TextStyle from '@tiptap/extension-text-style';
 import FontSize from '@tiptap/extension-font-size';
 import FontFamily from '@tiptap/extension-font-family';
+import React from "react";
 
 const initialContent = `<div style="text-align: center; margin-bottom: 32px;">
   <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Capítulo 1: El Despertar</h1>
@@ -651,44 +652,124 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
 
         {/* Área del editor con vista de páginas */}
         <div className="flex-1 bg-gray-100 dark:bg-gray-950 p-6 overflow-auto w-full flex justify-center">
+          {/* Vista de páginas numeradas con paginación automática */}
           <div className="w-[21cm] max-w-full flex flex-col items-center">
-            <Card
-              className="bg-white dark:bg-gray-900 shadow-lg relative mx-auto border-none"
-              style={{
-                width: '21cm',
-                minHeight: '29.7cm',
-                maxWidth: '100%',
-                margin: '0 auto',
-                padding: 0,
-                boxSizing: 'border-box',
-              }}
-            >
-              {viewManuscript ? (
-                <div className="p-16 prose dark:prose-invert max-w-none" style={{ minHeight: '24.7cm' }}>{renderManuscript()}</div>
-              ) : (
-                <div style={{ margin: '2.5cm', minHeight: '24.7cm' }}>
-                  <EditorContent
-                    editor={tiptap}
-                    className="tiptap-editor"
+            {(() => {
+              // Configuración de página A4
+              const PAGE_HEIGHT_CM = 29.7;
+              const PAGE_WIDTH_CM = 21;
+              const PAGE_HEIGHT_PX = 1122; // Aproximadamente 29.7cm a 96dpi
+              const PAGE_WIDTH_PX = 794;   // Aproximadamente 21cm a 96dpi
+              // Renderizado de páginas virtuales
+              // Usamos un ref para medir el contenido y dividirlo en páginas
+              const [pages, setPages] = React.useState<string[]>([]);
+              const editorRef = React.useRef<HTMLDivElement>(null);
+              React.useEffect(() => {
+                if (!editorRef.current) return;
+                // Soporte para saltos de página manuales
+                // El usuario puede insertar <hr class='page-break'> o el caracter '\f' (form feed)
+                // Primero, dividir el HTML por saltos de página manuales
+                const manualPages = (content || '').split(/<hr class=['"]page-break['"]\s*\/?>|\f/gi);
+                // Luego, para cada fragmento, dividir por altura si es necesario
+                let allPages: string[] = [];
+                manualPages.forEach(fragment => {
+                  // Crear un div temporal para medir bloques
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = fragment;
+                  const blocks = Array.from(tempDiv.childNodes);
+                  let currentPage: HTMLElement[] = [];
+                  const tempMeasure = document.createElement('div');
+                  tempMeasure.style.position = 'absolute';
+                  tempMeasure.style.visibility = 'hidden';
+                  tempMeasure.style.width = `${PAGE_WIDTH_PX}px`;
+                  tempMeasure.style.minHeight = '0';
+                  tempMeasure.style.padding = '0';
+                  tempMeasure.style.boxSizing = 'border-box';
+                  document.body.appendChild(tempMeasure);
+                  blocks.forEach((block, idx) => {
+                    tempMeasure.appendChild(block.cloneNode(true));
+                    const height = tempMeasure.offsetHeight;
+                    if (height > PAGE_HEIGHT_PX && currentPage.length > 0) {
+                      allPages.push(currentPage.map(n => n.outerHTML).join(''));
+                      currentPage = [];
+                      tempMeasure.innerHTML = '';
+                      tempMeasure.appendChild(block.cloneNode(true));
+                    }
+                    currentPage.push(block as HTMLElement);
+                  });
+                  if (currentPage.length > 0) {
+                    allPages.push(currentPage.map(n => n.outerHTML).join(''));
+                  }
+                  document.body.removeChild(tempMeasure);
+                });
+                setPages(allPages);
+              }, [content]);
+              // Renderizar páginas
+              if (pages.length === 0) {
+                // Renderizar el editor normal para escribir
+                return (
+                  <div
+                    className="relative mx-auto bg-white dark:bg-gray-900"
                     style={{
-                      lineHeight: '1.6',
-                      textAlign: 'left',
-                      background: !selectedChapter ? '#f3f4f6' : 'inherit',
-                      color: !selectedChapter ? '#a0aec0' : 'inherit',
-                      cursor: !selectedChapter ? 'not-allowed' : undefined,
-                      borderRadius: '0.5rem',
-                      transition: 'background 0.2s, color 0.2s',
+                      width: `${PAGE_WIDTH_CM}cm`,
+                      minHeight: `${PAGE_HEIGHT_CM}cm`,
+                      maxWidth: '100%',
+                      margin: '0 auto',
+                      padding: 0,
+                      boxSizing: 'border-box',
+                      border: 'none',
+                      boxShadow: 'none',
                     }}
+                  >
+                    <div style={{ margin: '2.5cm', minHeight: '24.7cm' }}>
+                      <div ref={editorRef}>
+                        <EditorContent
+                          editor={tiptap}
+                          className="tiptap-editor"
+                          style={{
+                            lineHeight: '1.6',
+                            textAlign: 'left',
+                            background: !selectedChapter ? '#f3f4f6' : 'inherit',
+                            color: !selectedChapter ? '#a0aec0' : 'inherit',
+                            cursor: !selectedChapter ? 'not-allowed' : undefined,
+                            borderRadius: '0.5rem',
+                            transition: 'background 0.2s, color 0.2s',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 dark:text-gray-400 select-none pointer-events-none">
+                      1
+                    </div>
+                  </div>
+                );
+              }
+              return pages.map((html, idx) => (
+                <div
+                  key={idx}
+                  className="relative mx-auto bg-white dark:bg-gray-900"
+                  style={{
+                    width: `${PAGE_WIDTH_CM}cm`,
+                    minHeight: `${PAGE_HEIGHT_CM}cm`,
+                    maxWidth: '100%',
+                    margin: '0 auto 2rem',
+                    padding: 0,
+                    boxSizing: 'border-box',
+                    border: 'none',
+                    boxShadow: 'none',
+                  }}
+                >
+                  <div
+                    className="prose dark:prose-invert max-w-none"
+                    style={{ margin: '2.5cm', minHeight: '24.7cm' }}
+                    dangerouslySetInnerHTML={{ __html: html }}
                   />
+                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 dark:text-gray-400 select-none pointer-events-none">
+                    {idx + 1}
+                  </div>
                 </div>
-              )}
-              {!selectedChapter && !viewManuscript && (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-lg font-medium pointer-events-none">
-                  Crea un capítulo para comenzar a escribir
-                </div>
-              )}
-              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 dark:text-gray-400">1</div>
-            </Card>
+              ));
+            })()}
           </div>
         </div>
       </div>
