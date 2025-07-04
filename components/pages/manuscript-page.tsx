@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -13,7 +14,7 @@ import FontFamily from "@tiptap/extension-font-family";
 import { getChapters, createChapter, updateChapter, deleteChapter, updateProject } from "@/lib/supabaseApi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Edit, Save, Undo, Redo, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link, Image, Highlight as HighlightIcon } from "lucide-react";
+import { Plus, Edit, Save, Undo, Redo, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link, Image, Highlighter } from "lucide-react";
 
 interface ManuscriptPageProps {
   projectId?: string | null;
@@ -216,7 +217,7 @@ export default function ManuscriptPage({ projectId, projectTitle: initialProject
           <Button variant={isBold ? "secondary" : "ghost"} size="sm" onClick={handleBold} title="Negrita"><Bold className="h-4 w-4" /></Button>
           <Button variant={isItalic ? "secondary" : "ghost"} size="sm" onClick={handleItalic} title="Cursiva"><Italic className="h-4 w-4" /></Button>
           <Button variant={isUnderline ? "secondary" : "ghost"} size="sm" onClick={handleUnderline} title="Subrayado"><UnderlineIcon className="h-4 w-4" /></Button>
-          <Button variant={isHighlight ? "secondary" : "ghost"} size="sm" onClick={handleHighlight} title="Resaltar"><HighlightIcon className="h-4 w-4" /></Button>
+          <Button variant={isHighlight ? "secondary" : "ghost"} size="sm" onClick={handleHighlight} title="Resaltar"><Highlighter className="h-4 w-4" /></Button>
           <Button variant={isBulletList ? "secondary" : "ghost"} size="sm" onClick={handleBulletList} title="Lista con viñetas"><List className="h-4 w-4" /></Button>
           <Button variant={isOrderedList ? "secondary" : "ghost"} size="sm" onClick={handleNumberedList} title="Lista numerada"><ListOrdered className="h-4 w-4" /></Button>
           <Button variant={align === 'left' ? "secondary" : "ghost"} size="sm" onClick={handleAlignLeft} title="Alinear izquierda"><AlignLeft className="h-4 w-4" /></Button>
