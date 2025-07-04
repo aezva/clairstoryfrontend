@@ -650,126 +650,69 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
           </div>
         </div>
 
-        {/* Área del editor con vista de páginas */}
+        {/* Área del editor con paginación visual tipo Google Docs */}
         <div className="flex-1 bg-gray-100 dark:bg-gray-950 p-6 overflow-auto w-full flex justify-center">
-          {/* Vista de páginas numeradas con paginación automática */}
-          <div className="w-[21cm] max-w-full flex flex-col items-center">
-            {(() => {
-              // Configuración de página A4
-              const PAGE_HEIGHT_CM = 29.7;
-              const PAGE_WIDTH_CM = 21;
-              const PAGE_HEIGHT_PX = 1122; // Aproximadamente 29.7cm a 96dpi
-              const PAGE_WIDTH_PX = 794;   // Aproximadamente 21cm a 96dpi
-              // Renderizado de páginas virtuales
-              // Usamos un ref para medir el contenido y dividirlo en páginas
-              const [pages, setPages] = React.useState<string[]>([]);
-              const editorRef = React.useRef<HTMLDivElement>(null);
-              React.useEffect(() => {
-                if (!editorRef.current) return;
-                // Soporte para saltos de página manuales
-                // El usuario puede insertar <hr class='page-break'> o el caracter '\f' (form feed)
-                // Primero, dividir el HTML por saltos de página manuales
-                const manualPages = (content || '').split(/<hr class=['"]page-break['"]\s*\/?>|\f/gi);
-                // Luego, para cada fragmento, dividir por altura si es necesario
-                let allPages: string[] = [];
-                manualPages.forEach(fragment => {
-                  // Crear un div temporal para medir bloques
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = fragment;
-                  const blocks = Array.from(tempDiv.childNodes);
-                  let currentPage: HTMLElement[] = [];
-                  const tempMeasure = document.createElement('div');
-                  tempMeasure.style.position = 'absolute';
-                  tempMeasure.style.visibility = 'hidden';
-                  tempMeasure.style.width = `${PAGE_WIDTH_PX}px`;
-                  tempMeasure.style.minHeight = '0';
-                  tempMeasure.style.padding = '0';
-                  tempMeasure.style.boxSizing = 'border-box';
-                  document.body.appendChild(tempMeasure);
-                  blocks.forEach((block, idx) => {
-                    tempMeasure.appendChild(block.cloneNode(true));
-                    const height = tempMeasure.offsetHeight;
-                    if (height > PAGE_HEIGHT_PX && currentPage.length > 0) {
-                      allPages.push(currentPage.map(n => n.outerHTML).join(''));
-                      currentPage = [];
-                      tempMeasure.innerHTML = '';
-                      tempMeasure.appendChild(block.cloneNode(true));
-                    }
-                    currentPage.push(block as HTMLElement);
-                  });
-                  if (currentPage.length > 0) {
-                    allPages.push(currentPage.map(n => n.outerHTML).join(''));
-                  }
-                  document.body.removeChild(tempMeasure);
-                });
-                setPages(allPages);
-              }, [content]);
-              // Renderizar páginas
-              if (pages.length === 0) {
-                // Renderizar el editor normal para escribir
+          <div className="relative flex flex-col items-center w-full" style={{ minWidth: '21cm' }}>
+            <div
+              className="editor-paged-container"
+              style={{
+                width: '21cm',
+                minHeight: '29.7cm',
+                maxWidth: '100%',
+                margin: '0 auto',
+                padding: 0,
+                boxSizing: 'border-box',
+                background: 'white',
+                position: 'relative',
+              }}
+            >
+              <EditorContent
+                editor={tiptap}
+                className="tiptap-editor paged-editor"
+                style={{
+                  minHeight: '29.7cm',
+                  padding: '2.5cm',
+                  outline: 'none',
+                  border: 'none',
+                  boxShadow: 'none',
+                  background: 'transparent',
+                  width: '100%',
+                  fontFamily: fontFamily,
+                  fontSize: fontSize + 'pt',
+                }}
+              />
+              {/* Numeración visual de páginas */}
+              {(() => {
+                // Calcula el número de páginas según la altura del contenido
+                const ref = React.useRef<HTMLDivElement>(null);
+                const [numPages, setNumPages] = React.useState(1);
+                React.useEffect(() => {
+                  if (!ref.current) return;
+                  const PAGE_HEIGHT_PX = 1122; // 29.7cm a 96dpi
+                  const contentHeight = ref.current.scrollHeight;
+                  setNumPages(Math.max(1, Math.ceil(contentHeight / PAGE_HEIGHT_PX)));
+                }, [content, fontSize, fontFamily]);
+                // Renderiza los números de página
                 return (
-                  <div
-                    className="relative mx-auto bg-white dark:bg-gray-900"
-                    style={{
-                      width: `${PAGE_WIDTH_CM}cm`,
-                      minHeight: `${PAGE_HEIGHT_CM}cm`,
-                      maxWidth: '100%',
-                      margin: '0 auto',
-                      padding: 0,
-                      boxSizing: 'border-box',
-                      border: 'none',
-                      boxShadow: 'none',
-                    }}
-                  >
-                    <div style={{ margin: '2.5cm', minHeight: '24.7cm' }}>
-                      <div ref={editorRef}>
-                        <EditorContent
-                          editor={tiptap}
-                          className="tiptap-editor"
-                          style={{
-                            lineHeight: '1.6',
-                            textAlign: 'left',
-                            background: !selectedChapter ? '#f3f4f6' : 'inherit',
-                            color: !selectedChapter ? '#a0aec0' : 'inherit',
-                            cursor: !selectedChapter ? 'not-allowed' : undefined,
-                            borderRadius: '0.5rem',
-                            transition: 'background 0.2s, color 0.2s',
-                          }}
-                        />
+                  <div ref={ref} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                    {Array.from({ length: numPages }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="page-number"
+                        style={{
+                          top: (i + 1) * 1122 - 40, // 40px desde el borde inferior de cada página
+                          left: '50%',
+                          position: 'absolute',
+                          transform: 'translateX(-50%)',
+                        }}
+                      >
+                        {i + 1}
                       </div>
-                    </div>
-                    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 dark:text-gray-400 select-none pointer-events-none">
-                      1
-                    </div>
+                    ))}
                   </div>
                 );
-              }
-              return pages.map((html, idx) => (
-                <div
-                  key={idx}
-                  className="relative mx-auto bg-white dark:bg-gray-900"
-                  style={{
-                    width: `${PAGE_WIDTH_CM}cm`,
-                    minHeight: `${PAGE_HEIGHT_CM}cm`,
-                    maxWidth: '100%',
-                    margin: '0 auto 2rem',
-                    padding: 0,
-                    boxSizing: 'border-box',
-                    border: 'none',
-                    boxShadow: 'none',
-                  }}
-                >
-                  <div
-                    className="prose dark:prose-invert max-w-none"
-                    style={{ margin: '2.5cm', minHeight: '24.7cm' }}
-                    dangerouslySetInnerHTML={{ __html: html }}
-                  />
-                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 dark:text-gray-400 select-none pointer-events-none">
-                    {idx + 1}
-                  </div>
-                </div>
-              ));
-            })()}
+              })()}
+            </div>
           </div>
         </div>
       </div>

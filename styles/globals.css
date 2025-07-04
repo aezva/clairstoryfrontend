@@ -117,3 +117,56 @@ body {
   box-shadow: none !important;
   background: transparent;
 }
+
+/* Paginación visual tipo Google Docs */
+.editor-paged-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.paged-editor {
+  column-width: auto;
+  width: 21cm;
+  min-height: 29.7cm;
+  background: white;
+  box-shadow: 0 1px 6px 0 rgba(32,33,36,0.18);
+  margin-bottom: 2rem;
+  border-radius: 0.5rem;
+  position: relative;
+  padding: 2.5cm;
+  box-sizing: border-box;
+}
+
+/* Saltos de página visuales */
+.paged-editor > *[data-page-break] {
+  display: block;
+  page-break-after: always;
+  break-after: page;
+  margin-bottom: 2rem;
+}
+
+/* Numeración de páginas visual */
+.paged-editor .page-number {
+  position: absolute;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  color: #888;
+  font-size: 0.95rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Simulación de múltiples páginas (solo visual, el contenido sigue siendo editable y continuo) */
+@media print {
+  .paged-editor {
+    box-shadow: none;
+    margin-bottom: 0;
+    border-radius: 0;
+    page-break-after: always;
+    break-after: page;
+  }
+  .paged-editor .page-number {
+    display: none;
+  }
+}
