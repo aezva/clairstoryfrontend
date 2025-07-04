@@ -49,9 +49,10 @@ interface SidebarProps {
   currentProject: Project | null
   onProjectSelect: (project: Project) => void
   onNewProject: (name?: string) => void
+  refreshProjects: (selectId?: string) => Promise<void>
 }
 
-export function Sidebar({ onPageChange, currentPage, projects, currentProject, onProjectSelect, onNewProject }: SidebarProps) {
+export function Sidebar({ onPageChange, currentPage, projects, currentProject, onProjectSelect, onNewProject, refreshProjects }: SidebarProps) {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
   const [newProjectName, setNewProjectName] = useState("")
@@ -60,30 +61,6 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
   const [newProjectInput, setNewProjectInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Refrescar proyectos y seleccionar el correcto tras cada acción
-  const refreshProjects = async (selectId?: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const updatedProjects = await getProjects()
-      if (updatedProjects.length === 0) {
-        onProjectSelect(null as any)
-      } else {
-        let selected = updatedProjects[0]
-        if (selectId) {
-          const found = updatedProjects.find((p: any) => p.id === selectId)
-          if (found) selected = found
-        }
-        onProjectSelect(selected)
-      }
-      // onNewProject()  <-- Eliminada para evitar creación accidental
-    } catch (e: any) {
-      setError("Error al actualizar proyectos")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleProjectSelect = (project: Project) => {
     onProjectSelect(project)
@@ -105,6 +82,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
         setRenamingProject(null)
         setNewProjectName("")
         await refreshProjects(renamingProject.id)
+        onProjectSelect({ ...renamingProject, name: newProjectName.trim(), title: newProjectName.trim() })
       } catch (e) {
         setError("Error al renombrar proyecto")
       } finally {
@@ -118,6 +96,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
     try {
       const newProj = await createProject({ title: `${project.name || project.title} (Copia)`, description: project.description || "" })
       await refreshProjects(newProj.id)
+      onProjectSelect(newProj)
     } catch (e) {
       setError("Error al duplicar proyecto")
     } finally {
@@ -131,6 +110,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
     try {
       await deleteProjectApi(projectId)
       await refreshProjects()
+      onProjectSelect(null as any)
     } catch (e) {
       setError("Error al eliminar proyecto")
     } finally {
@@ -147,6 +127,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
         setIsCreating(false)
         setIsDropdownOpen(false)
         await refreshProjects(newProj.id)
+        onProjectSelect(newProj)
       } catch (e) {
         setError("Error al crear proyecto")
       } finally {

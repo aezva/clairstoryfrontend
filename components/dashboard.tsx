@@ -19,15 +19,25 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<any[]>([])
   const [currentProject, setCurrentProject] = useState<any | null>(null)
 
-  useEffect(() => {
-    getProjects().then((data) => {
-      setProjects(data)
-      if (data.length > 0 && !currentProject) {
-        setCurrentProject(data[0])
-      } else if (data.length === 0) {
-        setCurrentProject(null)
+  // Centralizar refresco de proyectos
+  const refreshProjects = async (selectId?: string) => {
+    const updatedProjects = await getProjects()
+    setProjects(updatedProjects)
+    if (updatedProjects.length === 0) {
+      setCurrentProject(null)
+    } else {
+      let selected = updatedProjects[0]
+      if (selectId) {
+        const found = updatedProjects.find((p: any) => p.id === selectId)
+        if (found) selected = found
       }
-    })
+      setCurrentProject(selected)
+    }
+  }
+
+  useEffect(() => {
+    refreshProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleProjectSelect = (project: any) => {
@@ -37,13 +47,7 @@ export default function Dashboard() {
 
   const handleNewProject = async (name?: string) => {
     await createProject({ title: name || "Nuevo Proyecto", description: "" })
-    const updatedProjects = await getProjects()
-    setProjects(updatedProjects)
-    if (updatedProjects.length > 0) {
-      setCurrentProject(updatedProjects[0])
-    } else {
-      setCurrentProject(null)
-    }
+    await refreshProjects()
     setActiveSection("dashboard")
   }
 
@@ -83,6 +87,7 @@ export default function Dashboard() {
             currentProject={currentProject}
             onProjectSelect={handleProjectSelect}
             onNewProject={handleNewProject}
+            refreshProjects={refreshProjects}
           />
           <main className="flex-1 bg-white dark:bg-gray-900">{renderContent()}</main>
         </div>

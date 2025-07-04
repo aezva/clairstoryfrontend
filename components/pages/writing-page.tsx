@@ -32,6 +32,9 @@ import {
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { getChapters, createChapter, updateChapter, deleteChapter } from "@/lib/supabaseApi"
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const initialContent = `<div style="text-align: center; margin-bottom: 32px;">
   <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Capítulo 1: El Despertar</h1>
@@ -58,7 +61,7 @@ interface WritingPageProps {
   projectId?: string | null
 }
 
-export function WritingPage({ projectId }: WritingPageProps) {
+export function WritingPage({ projectId, projectTitle }: WritingPageProps & { projectTitle?: string }) {
   const [fontSize, setFontSize] = useState(12)
   const [fontFamily, setFontFamily] = useState("Times New Roman")
   const [zoom, setZoom] = useState(100)
@@ -74,6 +77,13 @@ export function WritingPage({ projectId }: WritingPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [creatingChapter, setCreatingChapter] = useState(false)
   const [newChapterTitle, setNewChapterTitle] = useState("")
+  const [viewManuscript, setViewManuscript] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const editorRef = useRef<HTMLDivElement>(null)
 
@@ -303,6 +313,62 @@ export function WritingPage({ projectId }: WritingPageProps) {
     }
   }
 
+  // Drag & drop handlers
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const oldIndex = chapters.findIndex((c) => c.id === active.id);
+      const newIndex = chapters.findIndex((c) => c.id === over.id);
+      const newOrder = arrayMove(chapters, oldIndex, newIndex);
+      setChapters(newOrder);
+      // Actualizar orden en Supabase
+      for (let i = 0; i < newOrder.length; i++) {
+        await updateChapter(newOrder[i].id, { order_num: i + 1 });
+      }
+    }
+  };
+
+  // Sortable capítulo
+  function SortableChapter({ chapter, selected, onSelect, onDelete }: any) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chapter.id });
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0.5 : 1,
+        }}
+        className={`p-3 rounded-md cursor-pointer border ${selected ? "bg-white border-indigo-200 shadow-sm" : "bg-white border-gray-200 hover:border-gray-300"}`}
+        onClick={() => onSelect(chapter)}
+        {...attributes}
+        {...listeners}
+      >
+        <div className="font-medium text-sm text-gray-800 mb-1 flex justify-between items-center">
+          <span>{chapter.title}</span>
+          <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); onDelete(chapter.id) }} title="Eliminar capítulo">
+            <Minus className="h-3 w-3 text-red-500" />
+          </Button>
+        </div>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{chapter.content ? `${chapter.content.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length} palabras` : "Sin contenido"}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar contenido del manuscrito
+  const renderManuscript = () => (
+    <div className="flex flex-col gap-8">
+      {chapters.map((chapter, idx) => (
+        <div key={chapter.id} className="bg-white dark:bg-gray-900 shadow-lg border rounded-lg p-8">
+          <h2 className="text-2xl font-bold mb-4">{chapter.title}</h2>
+          <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: chapter.content || "" }} />
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex h-full">
       {/* Área principal del editor */}
@@ -310,6 +376,16 @@ export function WritingPage({ projectId }: WritingPageProps) {
         {/* Barra de herramientas centrada */}
         <div className="border-b bg-white dark:bg-gray-900 p-2 space-y-2 w-full flex justify-center">
           <div className="w-[21cm] max-w-full flex flex-col items-center">
+            {/* Título del proyecto y capítulo actual */}
+            <div className="text-center mb-2">
+              <span className="text-xl font-bold text-gray-800 dark:text-gray-100">{projectTitle || "Sin título"}</span>
+              {selectedChapter && !viewManuscript && (
+                <span className="ml-4 text-lg text-gray-600 dark:text-gray-300">— {selectedChapter.title}</span>
+              )}
+              {viewManuscript && (
+                <span className="ml-4 text-lg text-gray-600 dark:text-gray-300">— Manuscrito completo</span>
+              )}
+            </div>
             {/* Primera fila de herramientas */}
             <div className="flex items-center space-x-1 justify-center">
               {/* Archivo */}
@@ -509,31 +585,36 @@ export function WritingPage({ projectId }: WritingPageProps) {
                 boxSizing: 'border-box',
               }}
             >
-              <div
-                ref={editorRef}
-                contentEditable={!!selectedChapter}
-                suppressContentEditableWarning
-                dir="ltr"
-                className="outline-none"
-                style={{
-                  fontFamily: fontFamily,
-                  fontSize: `${fontSize}pt`,
-                  lineHeight: "1.6",
-                  textAlign: "left",
-                  background: !selectedChapter ? '#f3f4f6' : 'inherit',
-                  color: !selectedChapter ? '#a0aec0' : 'inherit',
-                  cursor: !selectedChapter ? 'not-allowed' : undefined,
-                  minHeight: '24.7cm',
-                  margin: '2.5cm',
-                  boxSizing: 'border-box',
-                  borderRadius: '0.5rem',
-                  transition: 'background 0.2s, color 0.2s',
-                }}
-                dangerouslySetInnerHTML={{ __html: content }}
-                onInput={handleContentChange}
-                onBlur={handleContentChange}
-              />
-              {!selectedChapter && (
+              {viewManuscript ? (
+                <div className="p-16 prose dark:prose-invert max-w-none" style={{ minHeight: '24.7cm' }}>{renderManuscript()}</div>
+              ) : (
+                <div
+                  ref={editorRef}
+                  contentEditable={!!selectedChapter}
+                  suppressContentEditableWarning
+                  dir="ltr"
+                  className="outline-none"
+                  style={{
+                    unicodeBidi: 'plaintext',
+                    fontFamily: fontFamily,
+                    fontSize: `${fontSize}pt`,
+                    lineHeight: "1.6",
+                    textAlign: "left",
+                    background: !selectedChapter ? '#f3f4f6' : 'inherit',
+                    color: !selectedChapter ? '#a0aec0' : 'inherit',
+                    cursor: !selectedChapter ? 'not-allowed' : undefined,
+                    minHeight: '24.7cm',
+                    margin: '2.5cm',
+                    boxSizing: 'border-box',
+                    borderRadius: '0.5rem',
+                    transition: 'background 0.2s, color 0.2s',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: content }}
+                  onInput={handleContentChange}
+                  onBlur={handleContentChange}
+                />
+              )}
+              {!selectedChapter && !viewManuscript && (
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-lg font-medium pointer-events-none">
                   Crea un capítulo para comenzar a escribir
                 </div>
@@ -546,9 +627,16 @@ export function WritingPage({ projectId }: WritingPageProps) {
 
       {/* Sidebar de capítulos (más compacto) */}
       <div className="w-72 border-l bg-gray-50 p-4">
+        {/* Título del proyecto sobre capítulos */}
+        <div className="mb-2 text-center text-lg font-bold text-gray-800 dark:text-gray-100">{projectTitle || "Sin título"}</div>
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-800">Capítulos</h3>
+            <div className="flex gap-2 items-center">
+              <h3 className="font-medium text-gray-800">Capítulos</h3>
+              <Button variant={viewManuscript ? "secondary" : "ghost"} size="sm" onClick={() => setViewManuscript(!viewManuscript)}>
+                Manuscrito
+              </Button>
+            </div>
             <Button variant="ghost" size="sm" onClick={() => setCreatingChapter(true)}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -572,28 +660,22 @@ export function WritingPage({ projectId }: WritingPageProps) {
             </div>
           )}
         </div>
-
-        <div className="space-y-2">
-          {chapters.length === 0 && <div className="text-gray-400 text-sm">No hay capítulos aún.</div>}
-          {chapters.map((chapter) => (
-            <div
-              key={chapter.id}
-              className={`p-3 rounded-md cursor-pointer border ${selectedChapter?.id === chapter.id ? "bg-white border-indigo-200 shadow-sm" : "bg-white border-gray-200 hover:border-gray-300"}`}
-              onClick={() => handleSelectChapter(chapter)}
-            >
-              <div className="font-medium text-sm text-gray-800 mb-1 flex justify-between items-center">
-                <span>{chapter.title}</span>
-                <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleDeleteChapter(chapter.id) }} title="Eliminar capítulo">
-                  <Minus className="h-3 w-3 text-red-500" />
-                </Button>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>{chapter.content ? `${chapter.content.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length} palabras` : "Sin contenido"}</span>
-                {/* Aquí podrías mostrar el estado si lo deseas */}
-              </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {chapters.length === 0 && <div className="text-gray-400 text-sm">No hay capítulos aún.</div>}
+              {chapters.map((chapter) => (
+                <SortableChapter
+                  key={chapter.id}
+                  chapter={chapter}
+                  selected={selectedChapter?.id === chapter.id && !viewManuscript}
+                  onSelect={() => { setViewManuscript(false); handleSelectChapter(chapter); }}
+                  onDelete={handleDeleteChapter}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Estadísticas del documento */}
         <div className="mt-6 p-3 bg-white rounded-md border">
