@@ -653,7 +653,7 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
         <div className="flex-1 bg-gray-100 dark:bg-gray-950 p-6 overflow-auto w-full flex justify-center">
           <div className="w-[21cm] max-w-full flex flex-col items-center">
             <Card
-              className="bg-white dark:bg-gray-900 shadow-lg relative mx-auto border-0"
+              className="bg-white dark:bg-gray-900 shadow-lg relative mx-auto border-none"
               style={{
                 width: '21cm',
                 minHeight: '29.7cm',
