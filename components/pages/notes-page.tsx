@@ -59,7 +59,11 @@ const notes = [
   },
 ]
 
-export function NotesPage() {
+interface NotesPageProps {
+  projectId?: string | null
+}
+
+export function NotesPage({ projectId }: NotesPageProps) {
   return (
     <div className="p-6">
       <div className="mb-6">

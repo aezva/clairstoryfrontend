@@ -60,7 +60,11 @@ const initialContent = `<div style="text-align: center; margin-bottom: 32px;">
 
 <p>"¿Qué ha comenzado?" insistió, pero antes de que su abuela pudiera responder, un estruendo sacudió toda la casa.</p>`
 
-export function WritingPage() {
+interface WritingPageProps {
+  projectId?: string | null
+}
+
+export function WritingPage({ projectId }: WritingPageProps) {
   const [fontSize, setFontSize] = useState(12)
   const [fontFamily, setFontFamily] = useState("Times New Roman")
   const [zoom, setZoom] = useState(100)

@@ -5,7 +5,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Download, Save, Trash2 } from "lucide-react"
 
-export function SettingsPage() {
+interface SettingsPageProps {
+  projectId?: string | null
+}
+
+export function SettingsPage({ projectId }: SettingsPageProps) {
   return (
     <div className="p-6 max-w-4xl">
       <div className="mb-6">

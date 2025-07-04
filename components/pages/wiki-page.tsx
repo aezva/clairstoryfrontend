@@ -59,6 +59,10 @@ interface Category {
   icon: React.ReactNode
 }
 
+interface WikiPageProps {
+  projectId?: string | null
+}
+
 // Datos iniciales
 const initialCategories: Category[] = [
   {
@@ -456,7 +460,7 @@ function WikiCategory({
   )
 }
 
-export function WikiPage() {
+export function WikiPage({ projectId }: WikiPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [wikiEntries, setWikiEntries] = useState<WikiEntry[]>(initialWikiEntries)
   const [selectedEntry, setSelectedEntry] = useState<WikiEntry | null>(null)

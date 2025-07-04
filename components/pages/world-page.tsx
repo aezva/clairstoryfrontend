@@ -61,6 +61,10 @@ interface Category {
   icon: React.ReactNode
 }
 
+interface WorldPageProps {
+  projectId?: string | null
+}
+
 // Datos iniciales
 const initialCategories: Category[] = [
   {
@@ -404,7 +408,7 @@ function LocationCategory({
   )
 }
 
-export function WorldPage() {
+export function WorldPage({ projectId }: WorldPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [locations, setLocations] = useState<Location[]>(initialLocations)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)

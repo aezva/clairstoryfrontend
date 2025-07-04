@@ -221,7 +221,11 @@ const initialElements: OutlineElement[] = [
   },
 ]
 
-export function OutlinePage() {
+interface OutlinePageProps {
+  projectId?: string | null
+}
+
+export function OutlinePage({ projectId }: OutlinePageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [elements, setElements] = useState<OutlineElement[]>(initialElements)
   const [searchTerm, setSearchTerm] = useState("")

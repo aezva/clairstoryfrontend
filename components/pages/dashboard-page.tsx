@@ -23,7 +23,13 @@ import {
   Zap,
   Award,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import {
+  getCharacters,
+  getLocations,
+  getWikiEntries,
+  getNotes,
+} from "@/lib/supabaseApi"
 
 // Datos simulados para el dashboard
 const projectStats = {
@@ -195,10 +201,23 @@ const quickActions = [
 
 interface DashboardPageProps {
   onSectionChange: (section: string) => void
+  projectId: string | null
 }
 
-export function DashboardPage({ onSectionChange }: DashboardPageProps) {
-  const [selectedProject, setSelectedProject] = useState("El Reino de Aethermoor")
+export function DashboardPage({ onSectionChange, projectId }: DashboardPageProps) {
+  const [characters, setCharacters] = useState([])
+  const [locations, setLocations] = useState([])
+  const [wikiEntries, setWikiEntries] = useState([])
+  const [notes, setNotes] = useState([])
+  // Puedes agregar más estados para stats si lo deseas
+
+  useEffect(() => {
+    if (!projectId) return
+    getCharacters(projectId).then(setCharacters)
+    getLocations(projectId).then(setLocations)
+    getWikiEntries(projectId).then(setWikiEntries)
+    getNotes(projectId).then(setNotes)
+  }, [projectId])
 
   const progressPercentage = (projectStats.wordsWritten / (projectStats.dailyGoal * 30)) * 100
   const dailyProgressPercentage = ((projectStats.wordsWritten % projectStats.dailyGoal) / projectStats.dailyGoal) * 100
@@ -233,7 +252,7 @@ export function DashboardPage({ onSectionChange }: DashboardPageProps) {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold mb-2">{selectedProject}</h2>
+              <h2 className="text-xl font-semibold mb-2">{projectStats.wordsWritten.toLocaleString()} palabras</h2>
               <p className="text-indigo-100">Tu épica historia de fantasía está tomando forma</p>
               <div className="flex items-center space-x-4 mt-4">
                 <div className="flex items-center">
@@ -393,7 +412,7 @@ export function DashboardPage({ onSectionChange }: DashboardPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.characters.map((character) => (
+            {characters.map((character) => (
               <div
                 key={character.id}
                 className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -442,7 +461,7 @@ export function DashboardPage({ onSectionChange }: DashboardPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.locations.map((location) => (
+            {locations.map((location) => (
               <div
                 key={location.id}
                 className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -487,7 +506,7 @@ export function DashboardPage({ onSectionChange }: DashboardPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.wikiEntries.map((entry) => (
+            {wikiEntries.map((entry) => (
               <div
                 key={entry.id}
                 className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -532,7 +551,7 @@ export function DashboardPage({ onSectionChange }: DashboardPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.notes.map((note) => (
+            {notes.map((note) => (
               <div
                 key={note.id}
                 className="flex items-start space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"

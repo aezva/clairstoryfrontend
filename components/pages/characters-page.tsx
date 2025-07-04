@@ -57,6 +57,10 @@ interface Category {
   icon: React.ReactNode
 }
 
+interface CharactersPageProps {
+  projectId?: string | null
+}
+
 // Datos iniciales
 const initialCategories: Category[] = [
   {
@@ -379,7 +383,7 @@ function CharacterCategory({
   )
 }
 
-export function CharactersPage() {
+export function CharactersPage({ projectId }: CharactersPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [characters, setCharacters] = useState<Character[]>(initialCharacters)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
