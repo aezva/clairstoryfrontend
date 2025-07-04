@@ -24,6 +24,8 @@ export default function Dashboard() {
       setProjects(data)
       if (data.length > 0 && !currentProject) {
         setCurrentProject(data[0])
+      } else if (data.length === 0) {
+        setCurrentProject(null)
       }
     })
   }, [])
@@ -34,10 +36,14 @@ export default function Dashboard() {
   }
 
   const handleNewProject = async (name?: string) => {
-    const newProject = await createProject({ title: name || "Nuevo Proyecto", description: "" })
+    await createProject({ title: name || "Nuevo Proyecto", description: "" })
     const updatedProjects = await getProjects()
     setProjects(updatedProjects)
-    setCurrentProject(newProject)
+    if (updatedProjects.length > 0) {
+      setCurrentProject(updatedProjects[0])
+    } else {
+      setCurrentProject(null)
+    }
     setActiveSection("dashboard")
   }
 
