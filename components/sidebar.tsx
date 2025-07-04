@@ -148,7 +148,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
   ]
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen justify-between">
+    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen min-h-screen justify-between">
       {/* Header con selector de proyecto */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
