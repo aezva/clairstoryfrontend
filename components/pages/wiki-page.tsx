@@ -25,10 +25,11 @@ import {
   BookOpen,
   Search,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DndContext, type DragEndEvent, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { getWikiEntries } from "@/lib/supabaseApi"
 
 // Tipos
 interface WikiEntry {
@@ -462,7 +463,7 @@ function WikiCategory({
 
 export function WikiPage({ projectId }: WikiPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
-  const [wikiEntries, setWikiEntries] = useState<WikiEntry[]>(initialWikiEntries)
+  const [wikiEntries, setWikiEntries] = useState<any[]>([])
   const [selectedEntry, setSelectedEntry] = useState<WikiEntry | null>(null)
   const [editingEntry, setEditingEntry] = useState<WikiEntry | null>(null)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
@@ -473,6 +474,12 @@ export function WikiPage({ projectId }: WikiPageProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const sensors = useSensors(useSensor(PointerSensor))
+
+  useEffect(() => {
+    setWikiEntries([])
+    if (!projectId) return
+    getWikiEntries(projectId).then(setWikiEntries)
+  }, [projectId])
 
   // Filtrar entradas por búsqueda
   const filteredEntries = wikiEntries.filter(

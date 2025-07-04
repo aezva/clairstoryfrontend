@@ -23,10 +23,11 @@ import {
   Sword,
   Shield,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DndContext, type DragEndEvent, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { getCharacters } from "@/lib/supabaseApi"
 
 // Tipos
 interface Character {
@@ -385,7 +386,7 @@ function CharacterCategory({
 
 export function CharactersPage({ projectId }: CharactersPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
-  const [characters, setCharacters] = useState<Character[]>(initialCharacters)
+  const [characters, setCharacters] = useState<any[]>([])
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
@@ -395,6 +396,12 @@ export function CharactersPage({ projectId }: CharactersPageProps) {
   const [isNewCharacterDialogOpen, setIsNewCharacterDialogOpen] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor))
+
+  useEffect(() => {
+    setCharacters([])
+    if (!projectId) return
+    getCharacters(projectId).then(setCharacters)
+  }, [projectId])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event

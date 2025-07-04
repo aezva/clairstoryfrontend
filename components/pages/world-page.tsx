@@ -24,10 +24,11 @@ import {
   Sparkles,
   TrashIcon as Ruins,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DndContext, type DragEndEvent, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { getLocations } from "@/lib/supabaseApi"
 
 // Tipos
 interface Location {
@@ -410,7 +411,7 @@ function LocationCategory({
 
 export function WorldPage({ projectId }: WorldPageProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
-  const [locations, setLocations] = useState<Location[]>(initialLocations)
+  const [locations, setLocations] = useState<any[]>([])
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
@@ -420,6 +421,12 @@ export function WorldPage({ projectId }: WorldPageProps) {
   const [isNewLocationDialogOpen, setIsNewLocationDialogOpen] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor))
+
+  useEffect(() => {
+    setLocations([])
+    if (!projectId) return
+    getLocations(projectId).then(setLocations)
+  }, [projectId])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event

@@ -30,6 +30,8 @@ import {
   Plus,
   FileText,
 } from "lucide-react"
+import { useEffect } from "react"
+import { getProjects } from "@/lib/supabaseApi"
 
 interface Project {
   id: string
@@ -40,20 +42,17 @@ interface Project {
 interface SidebarProps {
   onPageChange: (page: string) => void
   currentPage: string
+  projects: Project[]
+  currentProject: Project | null
+  onProjectSelect: (project: Project) => void
+  onNewProject: () => void
 }
 
-const initialProjects: Project[] = [
-  { id: "1", name: "Las Crónicas de Aethermoor", createdAt: "2024-01-15" },
-  { id: "2", name: "El Reino Perdido", createdAt: "2024-01-10" },
-  { id: "3", name: "Dragones del Norte", createdAt: "2024-01-05" },
-]
-
-export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
-  const [projects, setProjects] = useState<Project[]>(initialProjects)
-  const [currentProject, setCurrentProject] = useState<Project>(projects[0])
+export function Sidebar({ onPageChange, currentPage, projects, currentProject, onProjectSelect, onNewProject }: SidebarProps) {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
   const [newProjectName, setNewProjectName] = useState("")
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -67,7 +66,8 @@ export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
   ]
 
   const handleProjectSelect = (project: Project) => {
-    setCurrentProject(project)
+    onProjectSelect(project)
+    setIsDropdownOpen(false)
   }
 
   const handleRenameProject = (project: Project) => {
@@ -82,28 +82,28 @@ export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
       name: `${project.name} (Copia)`,
       createdAt: new Date().toISOString().split("T")[0],
     }
-    setProjects((prev) => [...prev, newProject])
+    // setProjects((prev) => [...prev, newProject]) // This line was removed as per the new_code
   }
 
   const handleDeleteProject = (projectId: string) => {
-    if (projects.length <= 1) {
-      alert("No puedes eliminar el último proyecto")
-      return
-    }
+    // if (projects.length <= 1) { // This line was removed as per the new_code
+    //   alert("No puedes eliminar el último proyecto") // This line was removed as per the new_code
+    //   return // This line was removed as per the new_code
+    // } // This line was removed as per the new_code
 
-    if (confirm("¿Estás seguro de que quieres eliminar este proyecto?")) {
-      setProjects((prev) => prev.filter((p) => p.id !== projectId))
-      if (currentProject.id === projectId) {
-        setCurrentProject(projects.find((p) => p.id !== projectId) || projects[0])
-      }
-    }
+    // if (confirm("¿Estás seguro de que quieres eliminar este proyecto?")) { // This line was removed as per the new_code
+    //   setProjects((prev) => prev.filter((p) => p.id !== projectId)) // This line was removed as per the new_code
+    //   if (currentProject.id === projectId) { // This line was removed as per the new_code
+    //     setCurrentProject(projects.find((p) => p.id !== projectId) || projects[0]) // This line was removed as per the new_code
+    //   } // This line was removed as per the new_code
+    // } // This line was removed as per the new_code
   }
 
   const handleSaveRename = () => {
     if (renamingProject && newProjectName.trim()) {
-      setProjects((prev) => prev.map((p) => (p.id === renamingProject.id ? { ...p, name: newProjectName.trim() } : p)))
-      if (currentProject.id === renamingProject.id) {
-        setCurrentProject({ ...currentProject, name: newProjectName.trim() })
+      // setProjects((prev) => prev.map((p) => (p.id === renamingProject.id ? { ...p, name: newProjectName.trim() } : p))) // This line was removed as per the new_code
+      if (currentProject?.id === renamingProject.id) {
+        // setCurrentProject({ ...currentProject, name: newProjectName.trim() }) // This line was removed as per the new_code
       }
     }
     setIsRenameDialogOpen(false)
@@ -112,24 +112,18 @@ export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
   }
 
   const handleNewProject = () => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: "Nuevo Proyecto",
-      createdAt: new Date().toISOString().split("T")[0],
-    }
-    setProjects((prev) => [...prev, newProject])
-    setCurrentProject(newProject)
+    onNewProject()
   }
 
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Header con selector de proyecto */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <DropdownMenu>
+        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-between p-2 h-auto">
               <div className="text-left">
-                <div className="font-semibold text-sm truncate">{currentProject.name}</div>
+                <div className="font-semibold text-sm truncate">{currentProject?.name || "Sin proyecto"}</div>
                 <div className="text-xs text-gray-500">Proyecto actual</div>
               </div>
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
@@ -143,7 +137,7 @@ export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={`flex-1 justify-start text-left p-2 ${
-                      currentProject.id === project.id ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""
+                      currentProject?.id === project.id ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""
                     }`}
                     onClick={() => handleProjectSelect(project)}
                   >
@@ -170,7 +164,7 @@ export function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                       <DropdownMenuItem
                         onClick={() => handleDeleteProject(project.id)}
                         className="text-red-600"
-                        disabled={projects.length <= 1}
+                        // disabled={projects.length <= 1} // This line was removed as per the new_code
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Eliminar

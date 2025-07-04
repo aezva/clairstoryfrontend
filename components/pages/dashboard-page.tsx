@@ -205,13 +205,17 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onSectionChange, projectId }: DashboardPageProps) {
-  const [characters, setCharacters] = useState([])
-  const [locations, setLocations] = useState([])
-  const [wikiEntries, setWikiEntries] = useState([])
-  const [notes, setNotes] = useState([])
+  const [characters, setCharacters] = useState<any[]>([])
+  const [locations, setLocations] = useState<any[]>([])
+  const [wikiEntries, setWikiEntries] = useState<any[]>([])
+  const [notes, setNotes] = useState<any[]>([])
   // Puedes agregar más estados para stats si lo deseas
 
   useEffect(() => {
+    setCharacters([])
+    setLocations([])
+    setWikiEntries([])
+    setNotes([])
     if (!projectId) return
     getCharacters(projectId).then(setCharacters)
     getLocations(projectId).then(setLocations)
@@ -422,7 +426,7 @@ export function DashboardPage({ onSectionChange, projectId }: DashboardPageProps
                   <AvatarFallback>
                     {character.name
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>

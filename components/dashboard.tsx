@@ -12,42 +12,56 @@ import { NotesPage } from "./pages/notes-page"
 import { SettingsPage } from "./pages/settings-page"
 import { DashboardPage } from "./pages/dashboard-page"
 import { OutlinePage } from "./pages/outline-page"
-import { getProjects } from "@/lib/supabaseApi"
+import { getProjects, createProject } from "@/lib/supabaseApi"
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("dashboard")
   const [projects, setProjects] = useState<any[]>([])
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [currentProject, setCurrentProject] = useState<any | null>(null)
 
   useEffect(() => {
     getProjects().then((data) => {
       setProjects(data)
-      if (data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id)
+      if (data.length > 0 && !currentProject) {
+        setCurrentProject(data[0])
       }
     })
   }, [])
 
+  const handleProjectSelect = (project: any) => {
+    setCurrentProject(project)
+    setActiveSection("dashboard")
+  }
+
+  const handleNewProject = async () => {
+    const newProject = await createProject({ title: "Nuevo Proyecto", description: "" })
+    const updatedProjects = await getProjects()
+    setProjects(updatedProjects)
+    setCurrentProject(newProject)
+    setActiveSection("dashboard")
+  }
+
   const renderContent = () => {
+    if (!currentProject) return null
     switch (activeSection) {
       case "dashboard":
-        return <DashboardPage onSectionChange={setActiveSection} projectId={selectedProjectId} />
+        return <DashboardPage onSectionChange={setActiveSection} projectId={currentProject.id} />
       case "outline":
-        return <OutlinePage projectId={selectedProjectId} />
+        return <OutlinePage projectId={currentProject.id} />
       case "writing":
-        return <WritingPage projectId={selectedProjectId} />
+        return <WritingPage projectId={currentProject.id} />
       case "characters":
-        return <CharactersPage projectId={selectedProjectId} />
+        return <CharactersPage projectId={currentProject.id} />
       case "world":
-        return <WorldPage projectId={selectedProjectId} />
+        return <WorldPage projectId={currentProject.id} />
       case "wiki":
-        return <WikiPage projectId={selectedProjectId} />
+        return <WikiPage projectId={currentProject.id} />
       case "notes":
-        return <NotesPage projectId={selectedProjectId} />
+        return <NotesPage projectId={currentProject.id} />
       case "settings":
-        return <SettingsPage projectId={selectedProjectId} />
+        return <SettingsPage projectId={currentProject.id} />
       default:
-        return <DashboardPage onSectionChange={setActiveSection} projectId={selectedProjectId} />
+        return <DashboardPage onSectionChange={setActiveSection} projectId={currentProject.id} />
     }
   }
 
@@ -56,7 +70,14 @@ export default function Dashboard() {
       <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-950 font-['Inter',sans-serif]">
         <TopBar />
         <div className="flex flex-1">
-          <Sidebar currentPage={activeSection} onPageChange={setActiveSection} />
+          <Sidebar
+            currentPage={activeSection}
+            onPageChange={setActiveSection}
+            projects={projects}
+            currentProject={currentProject}
+            onProjectSelect={handleProjectSelect}
+            onNewProject={handleNewProject}
+          />
           <main className="flex-1 bg-white dark:bg-gray-900">{renderContent()}</main>
         </div>
       </div>
