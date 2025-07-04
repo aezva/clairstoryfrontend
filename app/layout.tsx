@@ -1,5 +1,6 @@
 import type React from "react"
 import "@/app/globals.css"
+import "@/styles/globals.css"
 import type { Metadata } from "next"
 
 // Update the metadata
