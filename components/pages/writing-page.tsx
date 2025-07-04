@@ -29,9 +29,10 @@ import {
   Minus,
   Eye,
   Settings,
+  Edit,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
-import { getChapters, createChapter, updateChapter, deleteChapter } from "@/lib/supabaseApi"
+import { getChapters, createChapter, updateChapter, deleteChapter, updateProject } from "@/lib/supabaseApi"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -61,7 +62,7 @@ interface WritingPageProps {
   projectId?: string | null
 }
 
-export function WritingPage({ projectId, projectTitle }: WritingPageProps & { projectTitle?: string }) {
+export function WritingPage({ projectId, projectTitle: initialProjectTitle }: WritingPageProps & { projectTitle?: string }) {
   const [fontSize, setFontSize] = useState(12)
   const [fontFamily, setFontFamily] = useState("Times New Roman")
   const [zoom, setZoom] = useState(100)
@@ -78,6 +79,11 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
   const [creatingChapter, setCreatingChapter] = useState(false)
   const [newChapterTitle, setNewChapterTitle] = useState("")
   const [viewManuscript, setViewManuscript] = useState(false);
+  const [projectTitle, setProjectTitle] = useState(initialProjectTitle || "");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState(projectTitle);
+  const [titleLoading, setTitleLoading] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -86,6 +92,32 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
   );
 
   const editorRef = useRef<HTMLDivElement>(null)
+
+  // Sincronizar título si cambia desde props
+  useEffect(() => {
+    setProjectTitle(initialProjectTitle || "");
+    setTitleInput(initialProjectTitle || "");
+  }, [initialProjectTitle]);
+
+  // Renombrar proyecto
+  const handleRenameProject = async () => {
+    if (!projectId || !titleInput.trim() || titleInput === projectTitle) {
+      setEditingTitle(false);
+      setTitleInput(projectTitle);
+      return;
+    }
+    setTitleLoading(true);
+    setTitleError(null);
+    try {
+      await updateProject(projectId, { title: titleInput.trim() });
+      setProjectTitle(titleInput.trim());
+      setEditingTitle(false);
+    } catch {
+      setTitleError("Error al renombrar proyecto");
+    } finally {
+      setTitleLoading(false);
+    }
+  };
 
   // Cargar capítulos al montar o cambiar de proyecto
   useEffect(() => {
@@ -155,7 +187,10 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
   // Cambiar de capítulo
   const handleSelectChapter = (chapter: any) => {
     setSelectedChapter(chapter)
-    setContent(chapter.content || "")
+    // Limpiar estilos de dirección embebidos
+    let cleanContent = (chapter.content || "").replace(/direction\s*:\s*rtl;?/gi, '').replace(/dir=['"]rtl['"]/gi, 'dir="ltr"');
+    if (!cleanContent || cleanContent === '<br>' || cleanContent === '<div><br></div>') cleanContent = '<span style="opacity:0">_</span>';
+    setContent(cleanContent)
     setError(null)
   }
 
@@ -376,15 +411,38 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
         {/* Barra de herramientas centrada */}
         <div className="border-b bg-white dark:bg-gray-900 p-2 space-y-2 w-full flex justify-center">
           <div className="w-[21cm] max-w-full flex flex-col items-center">
-            {/* Título del proyecto y capítulo actual */}
-            <div className="text-center mb-2">
-              <span className="text-xl font-bold text-gray-800 dark:text-gray-100">{projectTitle || "Sin título"}</span>
-              {selectedChapter && !viewManuscript && (
-                <span className="ml-4 text-lg text-gray-600 dark:text-gray-300">— {selectedChapter.title}</span>
+            {/* Título editable del proyecto */}
+            <div className="text-center mb-2 flex flex-col items-center">
+              {editingTitle ? (
+                <div className="flex gap-2 items-center">
+                  <input
+                    className="text-xl font-bold text-gray-800 dark:text-gray-100 border rounded px-2 py-1"
+                    value={titleInput}
+                    onChange={e => setTitleInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(); if (e.key === 'Escape') { setEditingTitle(false); setTitleInput(projectTitle); } }}
+                    autoFocus
+                    disabled={titleLoading}
+                  />
+                  <Button size="sm" onClick={handleRenameProject} disabled={titleLoading || !titleInput.trim()}>
+                    Guardar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setEditingTitle(false); setTitleInput(projectTitle); }} disabled={titleLoading}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  <span className="text-xl font-bold text-gray-800 dark:text-gray-100">{projectTitle || "Sin título"}</span>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingTitle(true)} title="Renombrar proyecto">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
-              {viewManuscript && (
-                <span className="ml-4 text-lg text-gray-600 dark:text-gray-300">— Manuscrito completo</span>
-              )}
+              {titleError && <div className="text-xs text-red-500 mt-1">{titleError}</div>}
+              {/* Nombre del capítulo actual o manuscrito */}
+              <div className="text-lg text-gray-600 dark:text-gray-300 mt-1">
+                {viewManuscript ? "Manuscrito completo" : (selectedChapter ? selectedChapter.title : "Sin capítulo")}
+              </div>
             </div>
             {/* Primera fila de herramientas */}
             <div className="flex items-center space-x-1 justify-center">
@@ -595,7 +653,7 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
                   dir="ltr"
                   className="outline-none"
                   style={{
-                    unicodeBidi: 'plaintext',
+                    direction: 'ltr',
                     fontFamily: fontFamily,
                     fontSize: `${fontSize}pt`,
                     lineHeight: "1.6",
@@ -627,38 +685,40 @@ export function WritingPage({ projectId, projectTitle }: WritingPageProps & { pr
 
       {/* Sidebar de capítulos (más compacto) */}
       <div className="w-72 border-l bg-gray-50 p-4">
-        {/* Título del proyecto sobre capítulos */}
-        <div className="mb-2 text-center text-lg font-bold text-gray-800 dark:text-gray-100">{projectTitle || "Sin título"}</div>
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex gap-2 items-center">
-              <h3 className="font-medium text-gray-800">Capítulos</h3>
-              <Button variant={viewManuscript ? "secondary" : "ghost"} size="sm" onClick={() => setViewManuscript(!viewManuscript)}>
-                Manuscrito
-              </Button>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setCreatingChapter(true)}>
-              <Plus className="h-4 w-4" />
-            </Button>
+        {/* Botón Manuscrito arriba de todo */}
+        <div className="mb-4 flex flex-col gap-2 items-center">
+          <Button variant={viewManuscript ? "secondary" : "ghost"} size="sm" onClick={() => setViewManuscript(!viewManuscript)}>
+            Manuscrito
+          </Button>
+          {/* Título editable del proyecto encima de capítulos */}
+          <div className="text-center text-lg font-bold text-gray-800 dark:text-gray-100">
+            {editingTitle ? (
+              <div className="flex gap-2 items-center justify-center">
+                <input
+                  className="text-lg font-bold text-gray-800 dark:text-gray-100 border rounded px-2 py-1"
+                  value={titleInput}
+                  onChange={e => setTitleInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(); if (e.key === 'Escape') { setEditingTitle(false); setTitleInput(projectTitle); } }}
+                  autoFocus
+                  disabled={titleLoading}
+                />
+                <Button size="sm" onClick={handleRenameProject} disabled={titleLoading || !titleInput.trim()}>
+                  Guardar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditingTitle(false); setTitleInput(projectTitle); }} disabled={titleLoading}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center justify-center">
+                <span>{projectTitle || "Sin título"}</span>
+                <Button size="sm" variant="ghost" onClick={() => setEditingTitle(true)} title="Renombrar proyecto">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {titleError && <div className="text-xs text-red-500 mt-1">{titleError}</div>}
           </div>
-          {creatingChapter && (
-            <div className="flex gap-2 mb-2">
-              <input
-                className="flex-1 px-2 py-1 border rounded text-sm"
-                placeholder="Título del capítulo"
-                value={newChapterTitle}
-                onChange={e => setNewChapterTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleCreateChapter() }}
-                autoFocus
-              />
-              <Button size="sm" onClick={handleCreateChapter} disabled={loading || !newChapterTitle.trim()}>
-                Crear
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setCreatingChapter(false); setNewChapterTitle("") }}>
-                Cancelar
-              </Button>
-            </div>
-          )}
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
