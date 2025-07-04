@@ -77,7 +77,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
         }
         onProjectSelect(selected)
       }
-      onNewProject()
+      // onNewProject()  <-- Eliminada para evitar creación accidental
     } catch (e: any) {
       setError("Error al actualizar proyectos")
     } finally {
