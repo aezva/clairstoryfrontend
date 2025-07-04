@@ -255,6 +255,12 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                 </Button>
               </li>
             ))}
+            <li>
+              <a href="/manuscript" className="flex items-center gap-2 px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <span className="icon">📄</span>
+                <span>Manuscrito</span>
+              </a>
+            </li>
           </ul>
         </nav>
         {/* Footer */}
