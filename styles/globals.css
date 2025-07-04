@@ -99,6 +99,16 @@ body {
   user-select: text !important;
   box-shadow: none !important;
   background: transparent;
+  min-height: 24cm;
+  padding: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  color: #222;
+  caret-color: #2563eb;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+  transition: background 0.2s, color 0.2s;
 }
 .tiptap-editor:focus {
   outline: none !important;

@@ -148,7 +148,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
   ]
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen justify-between">
       {/* Header con selector de proyecto */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
@@ -239,34 +239,35 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
         </DropdownMenu>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.id}>
-              <Button
-                variant={currentPage === item.id ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => onPageChange(item.id)}
-              >
-                <item.icon className="mr-3 h-4 w-4" />
-                {item.label}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder.svg" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">Usuario</div>
-            <div className="text-xs text-gray-500">Escritor</div>
+      <div className="flex-1 flex flex-col justify-between">
+        {/* Navigation */}
+        <nav className="p-4">
+          <ul className="space-y-2">
+            {menuItems.map((item) => (
+              <li key={item.id}>
+                <Button
+                  variant={currentPage === item.id ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => onPageChange(item.id)}
+                >
+                  <item.icon className="mr-3 h-4 w-4" />
+                  {item.label}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
+          <div className="flex items-center space-x-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="/placeholder.svg" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">Usuario</div>
+              <div className="text-xs text-gray-500">Escritor</div>
+            </div>
           </div>
         </div>
       </div>

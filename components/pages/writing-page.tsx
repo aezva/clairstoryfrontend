@@ -102,8 +102,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     })
   );
 
-  const editorRef = useRef<HTMLDivElement>(null)
-
   // Sincronizar título si cambia desde props
   useEffect(() => {
     setProjectTitle(initialProjectTitle || "");
@@ -246,14 +244,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     }
   }
 
-  // Funciones de formato
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value)
-    if (editorRef.current) {
-      setContent(editorRef.current.innerHTML)
-    }
-  }
-
   // Reemplazar handlers de formato por comandos TipTap
   const handleBold = () => tiptap?.chain().focus().toggleBold().run();
   const handleItalic = () => tiptap?.chain().focus().toggleItalic().run();
@@ -277,13 +267,11 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     if (url) tiptap?.chain().focus().setImage({ src: url }).run();
   };
 
+  // 4. Handlers de fuente y tamaño SOLO usan TipTap
   const handleFontSize = (size: number) => {
-    setFontSize(size);
     tiptap?.chain().focus().setFontSize(`${size}pt`).run();
   };
-
   const handleFontFamily = (family: string) => {
-    setFontFamily(family);
     tiptap?.chain().focus().setFontFamily(family).run();
   };
 
@@ -294,14 +282,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
   }
 
   // Cambios en el editor
-  const handleContentChange = () => {
-    if (editorRef.current) {
-      const newContent = editorRef.current.innerHTML
-      setContent(newContent)
-      setIsEditing(true)
-    }
-  }
-
   const handlePrint = () => {
     window.print()
   }
@@ -322,8 +302,8 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
       const selection = window.getSelection()
       const range = document.createRange()
 
-      if (editorRef.current) {
-        const walker = document.createTreeWalker(editorRef.current, NodeFilter.SHOW_TEXT, null)
+      if (tiptap) {
+        const walker = document.createTreeWalker(tiptap.view.dom, NodeFilter.SHOW_TEXT, null)
 
         let node
         while ((node = walker.nextNode())) {
@@ -413,6 +393,11 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     ],
     content: content || '',
     editable: !!selectedChapter,
+    editorProps: {
+      attributes: {
+        style: `font-family: ${fontFamily}; font-size: ${fontSize}pt;`,
+      },
+    },
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
       setIsEditing(true);
@@ -438,6 +423,17 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewManuscript]);
+
+  // 1. Obtener estado de la selección de TipTap
+  const isBold = tiptap?.isActive('bold') || false;
+  const isItalic = tiptap?.isActive('italic') || false;
+  const isUnderline = tiptap?.isActive('underline') || false;
+  const isHighlight = tiptap?.isActive('highlight') || false;
+  const isBulletList = tiptap?.isActive('bulletList') || false;
+  const isOrderedList = tiptap?.isActive('orderedList') || false;
+  const align = tiptap?.isActive({ textAlign: 'center' }) ? 'center' : tiptap?.isActive({ textAlign: 'right' }) ? 'right' : tiptap?.isActive({ textAlign: 'justify' }) ? 'justify' : 'left';
+  const currentFontFamily = tiptap?.getAttributes('textStyle').fontFamily || fontFamily;
+  const currentFontSize = parseInt((tiptap?.getAttributes('textStyle').fontSize || '').replace('pt', '')) || fontSize;
 
   return (
     <div className="flex h-full">
@@ -538,8 +534,9 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
               <div className="flex items-center space-x-1 pr-2 border-r">
                 <select
                   className="px-2 py-1 border border-gray-300 rounded text-sm w-32"
-                  value={fontFamily}
+                  value={currentFontFamily}
                   onChange={(e) => handleFontFamily(e.target.value)}
+                  disabled={!selectedChapter}
                 >
                   <option>Times New Roman</option>
                   <option>Arial</option>
@@ -549,8 +546,9 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
                 </select>
                 <select
                   className="px-2 py-1 border border-gray-300 rounded text-sm w-16"
-                  value={fontSize}
+                  value={currentFontSize}
                   onChange={(e) => handleFontSize(Number(e.target.value))}
+                  disabled={!selectedChapter}
                 >
                   <option>8</option>
                   <option>9</option>
@@ -569,17 +567,17 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
 
               {/* Formato de texto */}
               <div className="flex items-center space-x-1 pr-2 border-r">
-                <Button variant="ghost" size="sm" onClick={handleBold} title="Negrita">
+                <Button variant={isBold ? "secondary" : "ghost"} size="sm" onClick={handleBold} title="Negrita" disabled={!selectedChapter}>
                   <Bold className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleItalic} title="Cursiva">
+                <Button variant={isItalic ? "secondary" : "ghost"} size="sm" onClick={handleItalic} title="Cursiva" disabled={!selectedChapter}>
                   <Italic className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleUnderline} title="Subrayado">
+                <Button variant={isUnderline ? "secondary" : "ghost"} size="sm" onClick={handleUnderline} title="Subrayado" disabled={!selectedChapter}>
                   <UnderlineIcon className="h-4 w-4" />
                 </Button>
                 <div
-                  className="w-6 h-6 bg-yellow-300 rounded border cursor-pointer"
+                  className={`w-6 h-6 rounded border cursor-pointer ${isHighlight ? 'ring-2 ring-yellow-400 bg-yellow-300' : 'bg-yellow-300'}`}
                   title="Resaltar"
                   onClick={handleHighlight}
                 ></div>
@@ -592,26 +590,26 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
 
               {/* Alineación */}
               <div className="flex items-center space-x-1 pr-2 border-r">
-                <Button variant="ghost" size="sm" onClick={handleAlignLeft} title="Alinear izquierda">
+                <Button variant={align === 'left' ? "secondary" : "ghost"} size="sm" onClick={handleAlignLeft} title="Alinear izquierda" disabled={!selectedChapter}>
                   <AlignLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleAlignCenter} title="Centrar">
+                <Button variant={align === 'center' ? "secondary" : "ghost"} size="sm" onClick={handleAlignCenter} title="Centrar" disabled={!selectedChapter}>
                   <AlignCenter className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleAlignRight} title="Alinear derecha">
+                <Button variant={align === 'right' ? "secondary" : "ghost"} size="sm" onClick={handleAlignRight} title="Alinear derecha" disabled={!selectedChapter}>
                   <AlignRight className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleAlignJustify} title="Justificar">
+                <Button variant={align === 'justify' ? "secondary" : "ghost"} size="sm" onClick={handleAlignJustify} title="Justificar" disabled={!selectedChapter}>
                   <AlignJustify className="h-4 w-4" />
                 </Button>
               </div>
 
               {/* Listas */}
               <div className="flex items-center space-x-1 pr-2 border-r">
-                <Button variant="ghost" size="sm" onClick={handleBulletList} title="Lista con viñetas">
+                <Button variant={isBulletList ? "secondary" : "ghost"} size="sm" onClick={handleBulletList} title="Lista con viñetas" disabled={!selectedChapter}>
                   <List className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleNumberedList} title="Lista numerada">
+                <Button variant={isOrderedList ? "secondary" : "ghost"} size="sm" onClick={handleNumberedList} title="Lista numerada" disabled={!selectedChapter}>
                   <ListOrdered className="h-4 w-4" />
                 </Button>
               </div>
@@ -673,8 +671,6 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
                     editor={tiptap}
                     className="tiptap-editor"
                     style={{
-                      fontFamily: fontFamily,
-                      fontSize: `${fontSize}pt`,
                       lineHeight: '1.6',
                       textAlign: 'left',
                       background: !selectedChapter ? '#f3f4f6' : 'inherit',
