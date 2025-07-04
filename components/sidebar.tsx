@@ -31,7 +31,7 @@ import {
   FileText,
 } from "lucide-react"
 import { useEffect } from "react"
-import { getProjects } from "@/lib/supabaseApi"
+import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi } from "@/lib/supabaseApi"
 
 interface Project {
   id: string
@@ -78,42 +78,24 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
     setIsRenameDialogOpen(true)
   }
 
-  const handleDuplicateProject = (project: Project) => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: `${project.name} (Copia)`,
-      createdAt: new Date().toISOString().split("T")[0],
-    }
-    // setProjects((prev) => [...prev, newProject]) // This line was removed as per the new_code
-  }
-
-  const handleDeleteProject = (projectId: string) => {
-    // if (projects.length <= 1) { // This line was removed as per the new_code
-    //   alert("No puedes eliminar el último proyecto") // This line was removed as per the new_code
-    //   return // This line was removed as per the new_code
-    // } // This line was removed as per the new_code
-
-    // if (confirm("¿Estás seguro de que quieres eliminar este proyecto?")) { // This line was removed as per the new_code
-    //   setProjects((prev) => prev.filter((p) => p.id !== projectId)) // This line was removed as per the new_code
-    //   if (currentProject.id === projectId) { // This line was removed as per the new_code
-    //     setCurrentProject(projects.find((p) => p.id !== projectId) || projects[0]) // This line was removed as per the new_code
-    //   } // This line was removed as per the new_code
-    // } // This line was removed as per the new_code
-  }
-
-  const handleSaveRename = () => {
+  const handleSaveRename = async () => {
     if (renamingProject && newProjectName.trim()) {
-      // setProjects((prev) => prev.map((p) => (p.id === renamingProject.id ? { ...p, name: newProjectName.trim() } : p))) // This line was removed as per the new_code
-      if (currentProject?.id === renamingProject.id) {
-        // setCurrentProject({ ...currentProject, name: newProjectName.trim() }) // This line was removed as per the new_code
-      }
+      await updateProject(renamingProject.id, { title: newProjectName.trim() })
+      setIsRenameDialogOpen(false)
+      setRenamingProject(null)
+      setNewProjectName("")
+      // Refrescar proyectos
+      onNewProject()
     }
-    setIsRenameDialogOpen(false)
-    setRenamingProject(null)
-    setNewProjectName("")
   }
 
-  const handleNewProject = () => {
+  const handleDuplicateProject = async (project: Project) => {
+    await createProject({ title: `${project.name} (Copia)`, description: project.description || "" })
+    onNewProject()
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    await deleteProjectApi(projectId)
     onNewProject()
   }
 
@@ -143,6 +125,26 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
           <DropdownMenuContent className="w-64" align="start">
             <div className="p-2">
               <div className="text-xs font-medium text-gray-500 mb-2">PROYECTOS</div>
+              {isCreating && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <Input
+                    autoFocus
+                    value={newProjectInput}
+                    onChange={e => setNewProjectInput(e.target.value)}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1"
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateProject() }}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleCreateProject}>
+                      Crear
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setIsCreating(false); setNewProjectInput("") }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
               {projects.map((project) => (
                 <div key={project.id} className="flex items-center justify-between group">
                   <Button
@@ -153,8 +155,8 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                     onClick={() => handleProjectSelect(project)}
                   >
                     <div>
-                      <div className="text-sm truncate">{project.name}</div>
-                      <div className="text-xs text-gray-500">{project.createdAt}</div>
+                      <div className="text-sm truncate">{project.name || project.title}</div>
+                      <div className="text-xs text-gray-500">{project.createdAt || project.created_at}</div>
                     </div>
                   </Button>
                   <DropdownMenu>
@@ -175,7 +177,6 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                       <DropdownMenuItem
                         onClick={() => handleDeleteProject(project.id)}
                         className="text-red-600"
-                        // disabled={projects.length <= 1} // This line was removed as per the new_code
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Eliminar
@@ -184,24 +185,7 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                   </DropdownMenu>
                 </div>
               ))}
-              {isCreating ? (
-                <div className="flex items-center gap-2 mt-2">
-                  <Input
-                    autoFocus
-                    value={newProjectInput}
-                    onChange={e => setNewProjectInput(e.target.value)}
-                    placeholder="Nombre del proyecto"
-                    className="flex-1"
-                    onKeyDown={e => { if (e.key === 'Enter') handleCreateProject() }}
-                  />
-                  <Button size="sm" onClick={handleCreateProject}>
-                    Crear
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setIsCreating(false); setNewProjectInput("") }}>
-                    Cancelar
-                  </Button>
-                </div>
-              ) : (
+              {!isCreating && (
                 <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => setIsCreating(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nuevo Proyecto
@@ -244,27 +228,21 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
         </div>
       </div>
 
-      {/* Dialog para renombrar proyecto */}
+      {/* Dialogo para renombrar */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Renombrar Proyecto</DialogTitle>
-            <DialogDescription>Ingresa el nuevo nombre para tu proyecto</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="project-name">Nombre del proyecto</Label>
-            <Input
-              id="project-name"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder="Nombre del proyecto"
-            />
-          </div>
+          <Input
+            value={newProjectName}
+            onChange={e => setNewProjectName(e.target.value)}
+            placeholder="Nuevo nombre"
+            onKeyDown={e => { if (e.key === 'Enter') handleSaveRename() }}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
-              Cancelar
-            </Button>
             <Button onClick={handleSaveRename}>Guardar</Button>
+            <Button variant="ghost" onClick={() => setIsRenameDialogOpen(false)}>Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
