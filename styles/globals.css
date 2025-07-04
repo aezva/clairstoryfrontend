@@ -118,16 +118,19 @@ body {
   background: transparent;
 }
 
-/* Paginación visual tipo Google Docs */
+/* Corregir margen negro y asegurar páginas A4 visuales */
 .editor-paged-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: #e5e7eb; /* gris claro para simular fondo de Google Docs */
+  min-height: 100vh;
+  padding: 2rem 0;
 }
 .paged-editor {
-  column-width: auto;
   width: 21cm;
   min-height: 29.7cm;
+  max-width: 100%;
   background: white;
   box-shadow: 0 1px 6px 0 rgba(32,33,36,0.18);
   margin-bottom: 2rem;
@@ -135,14 +138,20 @@ body {
   position: relative;
   padding: 2.5cm;
   box-sizing: border-box;
+  border: none !important;
+  outline: none !important;
+}
+.paged-editor:focus {
+  border: none !important;
+  outline: none !important;
 }
 
-/* Saltos de página visuales */
-.paged-editor > *[data-page-break] {
-  display: block;
-  page-break-after: always;
-  break-after: page;
-  margin-bottom: 2rem;
+/* Simular saltos de página visuales */
+.paged-editor {
+  /* Usar CSS multi-column para simular páginas si el contenido es muy largo */
+  /* Pero para mantener el tamaño A4, solo mostrar una página a la vez con scroll vertical */
+  /* Si se quiere paginación real, se puede usar JS para dividir el contenido, pero aquí solo visual */
+  overflow: visible;
 }
 
 /* Numeración de páginas visual */
@@ -157,14 +166,18 @@ body {
   user-select: none;
 }
 
-/* Simulación de múltiples páginas (solo visual, el contenido sigue siendo editable y continuo) */
 @media print {
+  .editor-paged-container {
+    background: white;
+    padding: 0;
+  }
   .paged-editor {
     box-shadow: none;
     margin-bottom: 0;
     border-radius: 0;
     page-break-after: always;
     break-after: page;
+    padding: 2.5cm;
   }
   .paged-editor .page-number {
     display: none;
