@@ -45,7 +45,7 @@ interface SidebarProps {
   projects: Project[]
   currentProject: Project | null
   onProjectSelect: (project: Project) => void
-  onNewProject: () => void
+  onNewProject: (name?: string) => void
 }
 
 export function Sidebar({ onPageChange, currentPage, projects, currentProject, onProjectSelect, onNewProject }: SidebarProps) {
@@ -53,6 +53,8 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
   const [newProjectName, setNewProjectName] = useState("")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newProjectInput, setNewProjectInput] = useState("")
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -115,6 +117,15 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
     onNewProject()
   }
 
+  const handleCreateProject = () => {
+    if (newProjectInput.trim()) {
+      onNewProject(newProjectInput.trim())
+      setNewProjectInput("")
+      setIsCreating(false)
+      setIsDropdownOpen(false)
+    }
+  }
+
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Header con selector de proyecto */}
@@ -173,10 +184,29 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                   </DropdownMenu>
                 </div>
               ))}
-              <Button variant="ghost" className="w-full justify-start mt-2" onClick={handleNewProject}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Proyecto
-              </Button>
+              {isCreating ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <Input
+                    autoFocus
+                    value={newProjectInput}
+                    onChange={e => setNewProjectInput(e.target.value)}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1"
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateProject() }}
+                  />
+                  <Button size="sm" onClick={handleCreateProject}>
+                    Crear
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setIsCreating(false); setNewProjectInput("") }}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => setIsCreating(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Proyecto
+                </Button>
+              )}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>

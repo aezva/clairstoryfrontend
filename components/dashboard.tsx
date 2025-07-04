@@ -33,8 +33,8 @@ export default function Dashboard() {
     setActiveSection("dashboard")
   }
 
-  const handleNewProject = async () => {
-    const newProject = await createProject({ title: "Nuevo Proyecto", description: "" })
+  const handleNewProject = async (name?: string) => {
+    const newProject = await createProject({ title: name || "Nuevo Proyecto", description: "" })
     const updatedProjects = await getProjects()
     setProjects(updatedProjects)
     setCurrentProject(newProject)
