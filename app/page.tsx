@@ -6,12 +6,14 @@ import AuthPage from '@/components/pages/auth-page'
 export default function Home() {
   const [session, setSession] = useState<any>(null)
   useEffect(() => {
-    setSession(supabase.auth.session())
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
     return () => {
-      listener?.unsubscribe()
+      listener.subscription.unsubscribe()
     }
   }, [])
 
