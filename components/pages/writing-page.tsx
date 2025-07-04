@@ -44,6 +44,9 @@ import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import LinkExtension from '@tiptap/extension-link';
 import ImageExtension from '@tiptap/extension-image';
+import TextStyle from '@tiptap/extension-text-style';
+import FontSize from '@tiptap/extension-font-size';
+import FontFamily from '@tiptap/extension-font-family';
 
 const initialContent = `<div style="text-align: center; margin-bottom: 32px;">
   <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Capítulo 1: El Despertar</h1>
@@ -275,18 +278,14 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
   };
 
   const handleFontSize = (size: number) => {
-    setFontSize(size)
-    if (editorRef.current) {
-      editorRef.current.style.fontSize = `${size}pt`
-    }
-  }
+    setFontSize(size);
+    tiptap?.chain().focus().setFontSize(`${size}pt`).run();
+  };
 
   const handleFontFamily = (family: string) => {
-    setFontFamily(family)
-    if (editorRef.current) {
-      editorRef.current.style.fontFamily = family
-    }
-  }
+    setFontFamily(family);
+    tiptap?.chain().focus().setFontFamily(family).run();
+  };
 
   // Guardar manualmente
   const handleSave = () => {
@@ -408,6 +407,9 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
       Highlight,
       Color,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextStyle,
+      FontSize,
+      FontFamily,
     ],
     content: content || '',
     editable: !!selectedChapter,
@@ -653,7 +655,7 @@ export function WritingPage({ projectId, projectTitle: initialProjectTitle }: Wr
         <div className="flex-1 bg-gray-100 dark:bg-gray-950 p-6 overflow-auto w-full flex justify-center">
           <div className="w-[21cm] max-w-full flex flex-col items-center">
             <Card
-              className="bg-white dark:bg-gray-900 shadow-lg relative border mx-auto"
+              className="bg-white dark:bg-gray-900 shadow-lg relative mx-auto"
               style={{
                 width: '21cm',
                 minHeight: '29.7cm',
