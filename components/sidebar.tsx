@@ -35,8 +35,11 @@ import { getProjects, createProject, updateProject, deleteProject as deleteProje
 
 interface Project {
   id: string
-  name: string
-  createdAt: string
+  name?: string
+  title?: string
+  description?: string
+  createdAt?: string
+  created_at?: string
 }
 
 interface SidebarProps {
@@ -55,6 +58,102 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newProjectInput, setNewProjectInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Refrescar proyectos y seleccionar el correcto tras cada acción
+  const refreshProjects = async (selectId?: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const updatedProjects = await getProjects()
+      if (updatedProjects.length === 0) {
+        onProjectSelect(null as any)
+      } else {
+        let selected = updatedProjects[0]
+        if (selectId) {
+          const found = updatedProjects.find((p: any) => p.id === selectId)
+          if (found) selected = found
+        }
+        onProjectSelect(selected)
+      }
+      onNewProject()
+    } catch (e: any) {
+      setError("Error al actualizar proyectos")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleProjectSelect = (project: Project) => {
+    onProjectSelect(project)
+    setIsDropdownOpen(false)
+  }
+
+  const handleRenameProject = (project: Project) => {
+    setRenamingProject(project)
+    setNewProjectName(project.name || project.title || "")
+    setIsRenameDialogOpen(true)
+  }
+
+  const handleSaveRename = async () => {
+    if (renamingProject && newProjectName.trim()) {
+      setLoading(true)
+      try {
+        await updateProject(renamingProject.id, { title: newProjectName.trim() })
+        setIsRenameDialogOpen(false)
+        setRenamingProject(null)
+        setNewProjectName("")
+        await refreshProjects(renamingProject.id)
+      } catch (e) {
+        setError("Error al renombrar proyecto")
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  const handleDuplicateProject = async (project: Project) => {
+    setLoading(true)
+    try {
+      const newProj = await createProject({ title: `${project.name || project.title} (Copia)`, description: project.description || "" })
+      await refreshProjects(newProj.id)
+    } catch (e) {
+      setError("Error al duplicar proyecto")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!window.confirm("¿Seguro que quieres eliminar este proyecto? Esta acción no se puede deshacer.")) return
+    setLoading(true)
+    try {
+      await deleteProjectApi(projectId)
+      await refreshProjects()
+    } catch (e) {
+      setError("Error al eliminar proyecto")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateProject = async () => {
+    if (newProjectInput.trim()) {
+      setLoading(true)
+      try {
+        const newProj = await createProject({ title: newProjectInput.trim(), description: "" })
+        setNewProjectInput("")
+        setIsCreating(false)
+        setIsDropdownOpen(false)
+        await refreshProjects(newProj.id)
+      } catch (e) {
+        setError("Error al crear proyecto")
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -67,95 +166,36 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
     { id: "settings", label: "Configuración", icon: Settings },
   ]
 
-  const handleProjectSelect = (project: Project) => {
-    onProjectSelect(project)
-    setIsDropdownOpen(false)
-  }
-
-  const handleRenameProject = (project: Project) => {
-    setRenamingProject(project)
-    setNewProjectName(project.name)
-    setIsRenameDialogOpen(true)
-  }
-
-  const handleSaveRename = async () => {
-    if (renamingProject && newProjectName.trim()) {
-      await updateProject(renamingProject.id, { title: newProjectName.trim() })
-      setIsRenameDialogOpen(false)
-      setRenamingProject(null)
-      setNewProjectName("")
-      // Refrescar proyectos
-      onNewProject()
-    }
-  }
-
-  const handleDuplicateProject = async (project: Project) => {
-    await createProject({ title: `${project.name} (Copia)`, description: project.description || "" })
-    onNewProject()
-  }
-
-  const handleDeleteProject = async (projectId: string) => {
-    await deleteProjectApi(projectId)
-    onNewProject()
-  }
-
-  const handleCreateProject = () => {
-    if (newProjectInput.trim()) {
-      onNewProject(newProjectInput.trim())
-      setNewProjectInput("")
-      setIsCreating(false)
-      setIsDropdownOpen(false)
-    }
-  }
-
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Header con selector de proyecto */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-2 h-auto">
-              <div className="text-left">
-                <div className="font-semibold text-sm truncate">{currentProject?.name || "Sin proyecto"}</div>
+            <Button variant="ghost" className="w-full justify-between p-2 h-auto" title={currentProject?.name || currentProject?.title || "Sin proyecto"}>
+              <div className="text-left w-full">
+                <div className="font-semibold text-sm truncate w-full" style={{maxWidth:'180px'}}>{currentProject?.name || currentProject?.title || "Sin proyecto"}</div>
                 <div className="text-xs text-gray-500">Proyecto actual</div>
               </div>
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64" align="start">
-            <div className="p-2">
+          <DropdownMenuContent className="w-64 flex flex-col justify-between min-h-[300px] max-h-[400px]" align="start">
+            <div className="p-2 flex-1 overflow-y-auto">
               <div className="text-xs font-medium text-gray-500 mb-2">PROYECTOS</div>
-              {isCreating && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <Input
-                    autoFocus
-                    value={newProjectInput}
-                    onChange={e => setNewProjectInput(e.target.value)}
-                    placeholder="Nombre del proyecto"
-                    className="flex-1"
-                    onKeyDown={e => { if (e.key === 'Enter') handleCreateProject() }}
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleCreateProject}>
-                      Crear
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setIsCreating(false); setNewProjectInput("") }}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {loading && <div className="text-xs text-blue-500 mb-2">Cargando...</div>}
+              {error && <div className="text-xs text-red-500 mb-2">{error}</div>}
+              {projects.length === 0 && !loading && <div className="text-xs text-gray-400">No tienes proyectos aún.</div>}
               {projects.map((project) => (
                 <div key={project.id} className="flex items-center justify-between group">
                   <Button
                     variant="ghost"
-                    className={`flex-1 justify-start text-left p-2 ${
-                      currentProject?.id === project.id ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""
-                    }`}
+                    className={`flex-1 justify-start text-left p-2 ${currentProject?.id === project.id ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
                     onClick={() => handleProjectSelect(project)}
+                    title={project.name || project.title}
                   >
                     <div>
-                      <div className="text-sm truncate">{project.name || project.title}</div>
+                      <div className="text-sm truncate max-w-[140px]">{project.name || project.title}</div>
                       <div className="text-xs text-gray-500">{project.createdAt || project.created_at}</div>
                     </div>
                   </Button>
@@ -185,7 +225,29 @@ export function Sidebar({ onPageChange, currentPage, projects, currentProject, o
                   </DropdownMenu>
                 </div>
               ))}
-              {!isCreating && (
+            </div>
+            {/* Formulario de creación abajo */}
+            <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              {isCreating ? (
+                <div className="flex flex-col gap-2 mt-2">
+                  <Input
+                    autoFocus
+                    value={newProjectInput}
+                    onChange={e => setNewProjectInput(e.target.value)}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1"
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateProject() }}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleCreateProject} disabled={loading}>
+                      Crear
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setIsCreating(false); setNewProjectInput("") }} disabled={loading}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => setIsCreating(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nuevo Proyecto
