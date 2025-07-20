@@ -15,6 +15,13 @@ import { getChapters, createChapter, updateChapter, deleteChapter, updateProject
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Edit, Save, Undo, Redo, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link, Image, Highlighter } from "lucide-react";
+import {
+  PaginationPlus,
+  TablePlus,
+  TableRowPlus,
+  TableCellPlus,
+  TableHeaderPlus
+} from 'tiptap-pagination-plus';
 
 interface ManuscriptPageProps {
   projectId?: string | null;
@@ -141,6 +148,17 @@ export default function ManuscriptPage({ projectId, projectTitle: initialProject
       TextStyle,
       FontSize,
       FontFamily,
+      TablePlus,
+      TableRowPlus,
+      TableCellPlus,
+      TableHeaderPlus,
+      PaginationPlus.configure({
+        pageHeight: 842,
+        pageGap: 20,
+        pageBreakBackground: "#f7f7f7",
+        pageHeaderHeight: 50,
+        footerText: "Clari Story"
+      }),
     ],
     content: content || '',
     editable: !!selectedChapter,
